@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mcp-debugger — the debugger for where IDEs can't go</title>
+<meta name="description" content="A headless MCP server that lets AI agents debug real programs with real debuggers — in CI, containers, Kubernetes, and cloud sandboxes. Python, JavaScript, Ruby, Rust, Go, Java, and .NET.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23e5484d'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --graphite:#15171c; --panel:#1c1f26; --panel-edge:#2a2e37;
+    --ink:#e7e9ee; --dim:#98a0ac; --faint:#5c6470;
+    --bp:#e5484d; --pause:#eab84c; --ok:#4cb782; --act:#5b9dff;
+    --paper:#eef0f3; --paper-edge:#d7dbe2; --paper-ink:#191c21; --paper-dim:#4c545f;
+    --mono:ui-monospace,'Cascadia Code','JetBrains Mono','SF Mono',Consolas,'Liberation Mono',monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,Ubuntu,sans-serif;
+    --w:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{background:var(--graphite);color:var(--ink);font:16px/1.65 var(--sans)}
+  a{color:var(--act);text-decoration:none}
+  a:hover{text-decoration:underline}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--act);outline-offset:3px;border-radius:2px}
+  .wrap{max-width:var(--w);margin:0 auto;padding:0 24px}
+  code,pre,.mono{font-family:var(--mono)}
+
+  /* nav */
+  nav{border-bottom:1px solid var(--panel-edge)}
+  nav .wrap{display:flex;align-items:center;gap:28px;padding-top:18px;padding-bottom:18px}
+  .mark{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:15px;color:var(--ink);font-weight:600}
+  .mark .dot{width:10px;height:10px;border-radius:50%;background:var(--bp);flex:none}
+  nav .links{margin-left:auto;display:flex;gap:22px;font-size:14px}
+  nav .links a{color:var(--dim)} nav .links a:hover{color:var(--ink)}
+
+  /* hero */
+  header{padding:72px 0 64px;border-bottom:1px solid var(--panel-edge)}
+  .hero{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  .hero>*{min-width:0}
+  h1{font-family:var(--mono);font-size:clamp(28px,3.6vw,40px);line-height:1.2;letter-spacing:-0.02em;font-weight:650}
+  h1 em{font-style:normal;color:var(--pause)}
+  .sub{margin-top:18px;color:var(--dim);font-size:17px;max-width:46ch}
+  .sub b{color:var(--ink);font-weight:600}
+  .cmd{margin-top:28px;display:flex;align-items:center;gap:0;border:1px solid var(--panel-edge);background:var(--panel);border-radius:8px;overflow:hidden;max-width:520px}
+  .cmd code{padding:13px 16px;font-size:14px;color:var(--ink);flex:1;white-space:nowrap;overflow-x:auto}
+  .cmd code .p{color:var(--faint)}
+  .cmd button{border:0;border-left:1px solid var(--panel-edge);background:var(--panel);color:var(--dim);font:13px var(--mono);padding:13px 16px;cursor:pointer}
+  .cmd button:hover{color:var(--ink);background:var(--panel-edge)}
+  .hero-links{margin-top:16px;font-size:14px;color:var(--faint)}
+  .hero-links a{margin-right:18px}
+
+  /* transcript pane — the signature */
+  .pane{background:var(--panel);border:1px solid var(--panel-edge);border-radius:10px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .pane-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--panel-edge);color:var(--faint);font:12px var(--mono)}
+  .pane-bar .st{margin-left:auto;color:var(--pause)}
+  .pane-bar .st::before{content:'■ ';font-size:10px}
+  .tr{list-style:none;padding:14px 0;font:12.5px/2.05 var(--mono);overflow-x:auto}
+  .tr li{padding:0 16px;white-space:pre}
+  .tr .t{color:var(--act)}         /* tool name */
+  .tr .a{color:var(--dim)}         /* args */
+  .tr .r{color:var(--ok)}          /* result */
+  .tr .c{color:var(--faint)}       /* comment */
+  .tr .bad{color:var(--bp)}
+  .tr .stop{background:rgba(234,184,76,.12);border-left:3px solid var(--pause);padding-left:13px;color:var(--pause)}
+  .tr li{opacity:0;transform:translateY(4px);transition:opacity .3s ease,transform .3s ease}
+  .tr li.on{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.tr li{opacity:1;transform:none;transition:none}}
+
+  /* sections + breakpoint gutter motif */
+  section{padding:64px 0;border-bottom:1px solid var(--panel-edge)}
+  .eyebrow{display:flex;align-items:center;gap:12px;font:13px var(--mono);color:var(--dim);margin-bottom:10px}
+  .eyebrow::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--bp);flex:none}
+  h2{font-family:var(--mono);font-size:24px;letter-spacing:-0.01em;font-weight:650;margin-bottom:14px}
+  .lede{color:var(--dim);max-width:62ch;margin-bottom:34px}
+  .lede b{color:var(--ink);font-weight:600}
+
+  /* scenario cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{background:var(--panel);border:1px solid var(--panel-edge);border-radius:10px;padding:22px;min-width:0}
+  .card h3{font-size:15.5px;font-weight:650;margin-bottom:8px}
+  .card p{font-size:14px;color:var(--dim);margin-bottom:14px}
+  .card pre{font-size:12px;line-height:1.7;color:var(--dim);background:var(--graphite);border:1px solid var(--panel-edge);border-radius:6px;padding:10px 12px;overflow-x:auto;margin-bottom:14px}
+  .card pre b{color:var(--ink);font-weight:500}
+  .card a{font-size:13.5px}
+
+  /* tables */
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--panel-edge);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:14px;background:var(--panel)}
+  th{font:12px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--faint);text-align:left;padding:12px 16px;border-bottom:1px solid var(--panel-edge)}
+  td{padding:11px 16px;border-bottom:1px solid var(--panel-edge);color:var(--dim);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td:first-child{color:var(--ink);font-weight:550;white-space:nowrap}
+  td .eng{font:12.5px var(--mono);color:var(--faint)}
+  .y{color:var(--ok);font-family:var(--mono)} .n{color:var(--faint);font-family:var(--mono)}
+  .note{font-size:13px;color:var(--faint);margin-top:14px;max-width:70ch}
+
+  /* skill */
+  .skill-cmd{display:inline-flex;margin-top:6px}
+
+  /* trust — inverted paper */
+  .trust{background:var(--paper);color:var(--paper-ink);border-bottom:0}
+  .trust .eyebrow{color:var(--paper-dim)}
+  .trust .lede{color:var(--paper-dim)}
+  .trust .lede b{color:var(--paper-ink)}
+  .trust-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+  .trust h3{font:650 13px var(--mono);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;color:var(--paper-ink)}
+  .trust ul{list-style:none}
+  .trust li{padding:7px 0;border-bottom:1px solid var(--paper-edge);font-size:14.5px;color:var(--paper-dim)}
+  .trust li:last-child{border-bottom:0}
+  .trust li b{color:var(--paper-ink);font-weight:600}
+  .trust a{color:#1e5fcc}
+  .trust code{background:#e2e5ea;border-radius:4px;padding:2px 7px;font-size:12.5px;color:var(--paper-ink)}
+
+  footer{padding:40px 0 56px;color:var(--faint);font-size:13.5px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:10px 32px;align-items:baseline}
+  footer a{color:var(--dim)}
+
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr}
+    .cards{grid-template-columns:1fr}
+    .trust-grid{grid-template-columns:1fr}
+    nav .links a:nth-child(n+4){display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="mark"><span class="dot"></span>mcp-debugger</span>
+    <span class="links">
+      <a href="https://github.com/debugmcp/mcp-debugger">GitHub</a>
+      <a href="https://www.npmjs.com/package/@debugmcp/mcp-debugger">npm</a>
+      <a href="https://hub.docker.com/r/debugmcp/mcp-debugger">Docker</a>
+      <a href="https://github.com/debugmcp/mcp-debugger/tree/main/docs">Docs</a>
+    </span>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap hero">
+    <div>
+      <h1>The debugger for where IDEs can't go<em>.</em></h1>
+      <p class="sub">mcp-debugger is a headless MCP server that lets AI agents drive <b>real debuggers</b> — breakpoints, stepping, live variables — in CI runners, containers, Kubernetes pods, and cloud sandboxes. <b>Seven languages.</b> No IDE anywhere in the loop.</p>
+      <div class="cmd">
+        <code><span class="p">$</span> npx @debugmcp/mcp-debugger stdio</code>
+        <button type="button" data-copy="npx @debugmcp/mcp-debugger stdio">copy</button>
+      </div>
+      <p class="hero-links">
+        <a href="https://github.com/debugmcp/mcp-debugger#-quick-start">All install options</a>
+        <a href="https://github.com/debugmcp/mcp-debugger#%EF%B8%8F-available-tools">Tool reference</a>
+      </p>
+    </div>
+    <figure class="pane" aria-label="An agent debugging a live Kubernetes pod with mcp-debugger">
+      <div class="pane-bar"><span>agent session — checkout pod, staging</span><span class="st">paused</span></div>
+      <ol class="tr" id="tr">
+        <li><span class="t">create_debug_session</span> <span class="a">{ language: "python" }</span>  <span class="r">✓ session created</span></li>
+        <li><span class="t">attach_to_process</span>    <span class="a">{ port: 5678 }</span>  <span class="r">✓ attached to pod</span></li>
+        <li><span class="t">set_breakpoint</span>       <span class="a">{ file: "app.py", line: 51 }</span>  <span class="r">● verified</span></li>
+        <li><span class="c"># one request comes in …</span></li>
+        <li class="stop">■ stopped — "breakpoint"  app.py:51  total = sum(prices)</li>
+        <li><span class="t">get_local_variables</span>  <span class="a">→</span> prices = <span class="bad">[270]</span>   <span class="c"># expected [300]</span></li>
+        <li><span class="t">evaluate_expression</span>  <span class="a">{ "_cart_cache" }</span> <span class="a">→</span> {('cherry',): <span class="bad">[270]</span>}</li>
+        <li><span class="r">✓ root cause: bulk discount mutates the shared cached list</span></li>
+        <li><span class="t">continue_execution</span>   <span class="r">✓ pod kept serving throughout</span></li>
+      </ol>
+    </figure>
+  </div>
+</header>
+
+<section id="scenarios">
+  <div class="wrap">
+    <p class="eyebrow">where IDEs can't go</p>
+    <h2>Debug the processes nobody can click on</h2>
+    <p class="lede">An IDE debugger needs an IDE, a screen, and a human at the keyboard. Agents work where none of those exist — and that's exactly where the interesting failures live.</p>
+    <div class="cards">
+      <div class="card">
+        <h3>CI that explains itself</h3>
+        <p>On test failure, the agent sets real breakpoints in the failing path, inspects live values, and posts the root cause as a PR comment.</p>
+        <pre><b>- uses:</b> debugmcp/mcp-debugger/.github/actions/debug-failing-test@main</pre>
+        <a href="https://github.com/debugmcp/mcp-debugger/tree/main/.github/actions/debug-failing-test">The debug-failing-test action →</a>
+      </div>
+      <div class="card">
+        <h3>Sick pods, diagnosed live</h3>
+        <p>Attach to a misbehaving pod through a port-forward, inspect the state your logs never captured, detach. No redeploy, no new logging.</p>
+        <pre><b>$</b> kubectl port-forward deploy/checkout 5678:5678</pre>
+        <a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/jit-diagnostics/README.md">Just-in-time diagnostics tutorial →</a>
+      </div>
+      <div class="card">
+        <h3>Cloud agents, real debuggers</h3>
+        <p>Claude Code, Copilot, Cursor, and headless harnesses connect over stdio or HTTP. A debug session becomes structured tool calls an agent can reason about.</p>
+        <pre><b>$</b> claude mcp add-json mcp-debugger …</pre>
+        <a href="https://github.com/debugmcp/mcp-debugger#mcp-integration-with-claude-code-cli">Client setup →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="languages">
+  <div class="wrap">
+    <p class="eyebrow">languages</p>
+    <h2>Seven languages, one contract</h2>
+    <p class="lede">Every adapter drives the language's own production debugger through the Debug Adapter Protocol — the same engines your IDE would use, without the IDE.</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Language</th><th>Engine</th><th>Launch</th><th>Attach</th><th>Remote attach</th><th>Notable</th></tr></thead>
+      <tbody>
+        <tr><td>Python</td><td class="eng">debugpy</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>logpoints, exception breakpoints</td></tr>
+        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>VS Code's engine, TS auto-detection</td></tr>
+        <tr><td>Ruby</td><td class="eng">rdbg</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>attach into containers &amp; pods</td></tr>
+        <tr><td>Rust</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>Cargo-aware launch, logpoints</td></tr>
+        <tr><td>Go</td><td class="eng">Delve</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>native DAP, logpoints</td></tr>
+        <tr><td>Java</td><td class="eng">JDI bridge</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>JDWP attach, class hot-swap</td></tr>
+        <tr><td>.NET / C#</td><td class="eng">netcoredbg</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>PID attach, portable PDB handling</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed.</p>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <p class="eyebrow">choosing a debug server</p>
+    <h2>mcp-debugger vs. an IDE-bound debug server</h2>
+    <p class="lede">Microsoft's <a href="https://github.com/microsoft/DebugMCP">DebugMCP</a> exposes VS Code's debugger over MCP and is a good choice when your agent works <b>inside a running VS Code</b>. The projects make different structural trade-offs:</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th></th><th>mcp-debugger</th><th>microsoft/DebugMCP</th></tr></thead>
+      <tbody>
+        <tr><td>Runs headless (CI, containers, k8s, cloud)</td><td class="y">✓ standalone process</td><td class="n">requires running VS Code</td></tr>
+        <tr><td>Transports</td><td>stdio + Streamable HTTP</td><td>HTTP (localhost)</td></tr>
+        <tr><td>Distribution</td><td>npx, npm, Docker</td><td>VS Code Marketplace</td></tr>
+        <tr><td>Remote attach without an IDE</td><td class="y">✓ debugpy / rdbg / JDWP</td><td class="n">—</td></tr>
+        <tr><td>Per-session process isolation</td><td class="y">✓</td><td class="n">shares the VS Code instance</td></tr>
+        <tr><td>Java hot-swap</td><td class="y">✓</td><td class="n">—</td></tr>
+        <tr><td>In-IDE debugging UX beside the agent</td><td class="n">planned</td><td class="y">✓ native</td></tr>
+        <tr><td>C/C++, PHP</td><td class="n">—</td><td class="y">✓ via VS Code extensions</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">If your agent runs in a terminal, a pipeline, or a cloud sandbox — or needs to reach a process on another machine — you want mcp-debugger.</p>
+  </div>
+</section>
+
+<section id="skill">
+  <div class="wrap">
+    <p class="eyebrow">agent skill</p>
+    <h2>Tools say what an agent can do. The skill teaches it to debug well.</h2>
+    <p class="lede">mcp-debugger ships an agent skill: when to reach for the debugger, the session golden path, root-cause bisection discipline, and the per-language quirks we learned so your agent doesn't have to. The server also serves condensed guidance in-band via MCP instructions and a <code>debugging-workflow</code> prompt.</p>
+    <div class="cmd skill-cmd">
+      <code><span class="p">$</span> npx skills add debugmcp/mcp-debugger</code>
+      <button type="button" data-copy="npx skills add debugmcp/mcp-debugger">copy</button>
+    </div>
+  </div>
+</section>
+
+<section class="trust" id="trust">
+  <div class="wrap">
+    <p class="eyebrow">who stands behind this</p>
+    <h2>Built in the open. Accountable on paper.</h2>
+    <p class="lede">mcp-debugger is stewarded by <b>Sycamore LLC</b> and led by John Franklin. AI agents write most of the code; <b>a human maintainer makes every merge, release, and security decision.</b> The project is MIT-licensed — the grant doesn't depend on the steward.</p>
+    <div class="trust-grid">
+      <div>
+        <h3>Governance</h3>
+        <ul>
+          <li><b><a href="https://github.com/debugmcp/mcp-debugger/blob/main/GOVERNANCE.md">GOVERNANCE.md</a></b> — decision &amp; release authority</li>
+          <li><b><a href="https://github.com/debugmcp/mcp-debugger/blob/main/MAINTAINERS.md">MAINTAINERS.md</a></b> — named maintainer, channel identities, continuity</li>
+          <li><b><a href="https://github.com/debugmcp/mcp-debugger/blob/main/SECURITY.md">SECURITY.md</a></b> — private disclosure, response timelines</li>
+          <li><b><a href="https://github.com/debugmcp/mcp-debugger/blob/main/SUPPORT.md">SUPPORT.md</a></b> — community &amp; commercial support</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Supply chain</h3>
+        <ul>
+          <li>Sigstore provenance on every npm package — verify with <code>npm audit signatures @debugmcp/mcp-debugger</code></li>
+          <li>SPDX + CycloneDX <b>SBOMs</b> attached to each GitHub release</li>
+          <li>OIDC trusted publishing, SHA-pinned CI actions — <a href="https://github.com/debugmcp/mcp-debugger/blob/main/SUPPLY-CHAIN-SECURITY.md">full controls</a></li>
+          <li><a href="https://scorecard.dev/viewer/?uri=github.com/debugmcp/mcp-debugger">OpenSSF Scorecard</a> · <a href="https://www.bestpractices.dev/projects/13543">Best Practices</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2025–2026 Sycamore LLC · MIT License</span>
+    <a href="https://github.com/debugmcp">GitHub</a>
+    <a href="mailto:debug@sycamore.llc">debug@sycamore.llc</a>
+    <span>This page loads no third-party resources.</span>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    for (const b of document.querySelectorAll('button[data-copy]')) {
+      b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent='copied'; }
+        catch { b.textContent='select →'; }
+        setTimeout(() => { b.textContent='copy'; }, 1600);
+      });
+    }
+    const lines = document.querySelectorAll('#tr li');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      lines.forEach(l => l.classList.add('on'));
+    } else {
+      lines.forEach((l, i) => setTimeout(() => l.classList.add('on'), 350 + i * 420));
+    }
+  })();
+</script>
+</body>
+</html>
