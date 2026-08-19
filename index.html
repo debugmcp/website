@@ -142,7 +142,7 @@
   <div class="wrap hero">
     <div>
       <h1>The debugger for where IDEs can't go<em>.</em></h1>
-      <p class="sub">mcp-debugger is a headless MCP server that lets AI agents drive <b>real debuggers</b> — breakpoints, stepping, live variables — in CI runners, containers, Kubernetes pods, and cloud sandboxes. <b>Seven languages.</b> No IDE anywhere in the loop.</p>
+      <p class="sub">mcp-debugger is a headless MCP server that lets AI agents drive <b>real debuggers</b> — breakpoints, stepping, live variables — in CI runners, containers, Kubernetes pods, and cloud sandboxes. <b>Eight languages, 28 tools.</b> No IDE anywhere in the loop.</p>
       <div class="cmd">
         <code><span class="p">$</span> npx @debugmcp/mcp-debugger stdio</code>
         <button type="button" data-copy="npx @debugmcp/mcp-debugger stdio">copy</button>
@@ -157,7 +157,7 @@
       <ol class="tr" id="tr">
         <li><span class="t">create_debug_session</span> <span class="a">{ language: "python" }</span>  <span class="r">✓ session created</span></li>
         <li><span class="t">attach_to_process</span>    <span class="a">{ port: 5678 }</span>  <span class="r">✓ attached to pod</span></li>
-        <li><span class="t">set_breakpoint</span>       <span class="a">{ file: "app.py", line: 51 }</span>  <span class="r">● verified</span></li>
+        <li><span class="t">set_breakpoint</span>       <span class="a">{ file: "app.py", statement: "total = sum(prices)" }</span>  <span class="r">● verified</span></li>
         <li><span class="c"># one request comes in …</span></li>
         <li class="stop">■ stopped — "breakpoint"  app.py:51  total = sum(prices)</li>
         <li><span class="t">get_local_variables</span>  <span class="a">→</span> prices = <span class="bad">[270]</span>   <span class="c"># expected [300]</span></li>
@@ -183,8 +183,8 @@
       </div>
       <div class="card">
         <h3>Sick pods, diagnosed live</h3>
-        <p>Attach to a misbehaving pod through a port-forward, inspect the state your logs never captured, detach. No redeploy, no new logging.</p>
-        <pre><b>$</b> kubectl port-forward deploy/checkout 5678:5678</pre>
+        <p>Attach to a misbehaving pod through a port-forward, inspect the state your logs never captured, detach. Compiled process with no debug agent? Send the debugger to the pod as an ephemeral sidecar and attach by PID.</p>
+        <pre><b>$</b> kubectl debug pod/checkout --image=debugmcp/mcp-debugger …</pre>
         <a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/jit-diagnostics/README.md">Just-in-time diagnostics tutorial →</a>
       </div>
       <div class="card">
@@ -200,21 +200,22 @@
 <section id="languages">
   <div class="wrap">
     <p class="eyebrow">languages</p>
-    <h2>Seven languages, one contract</h2>
+    <h2>Eight languages, one contract</h2>
     <p class="lede">Every adapter drives the language's own production debugger through the Debug Adapter Protocol — the same engines your IDE would use, without the IDE.</p>
     <div class="tbl-scroll"><table>
       <thead><tr><th>Language</th><th>Engine</th><th>Launch</th><th>Attach</th><th>Remote attach</th><th>Notable</th></tr></thead>
       <tbody>
-        <tr><td>Python</td><td class="eng">debugpy</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>logpoints, exception breakpoints</td></tr>
-        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>VS Code's engine, TS auto-detection</td></tr>
+        <tr><td>Python</td><td class="eng">debugpy</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>logpoints, function breakpoints</td></tr>
+        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>VS Code's engine, function breakpoints via CDP</td></tr>
         <tr><td>Ruby</td><td class="eng">rdbg</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>attach into containers &amp; pods</td></tr>
         <tr><td>Rust</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>Cargo-aware launch, logpoints</td></tr>
         <tr><td>Go</td><td class="eng">Delve</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>native DAP, logpoints</td></tr>
         <tr><td>Java</td><td class="eng">JDI bridge</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>JDWP attach, class hot-swap</td></tr>
         <tr><td>.NET / C#</td><td class="eng">netcoredbg</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>PID attach, portable PDB handling</td></tr>
+        <tr><td>C / C++</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>attach by PID, k8s ephemeral sidecar, auto-compile, core dumps</td></tr>
       </tbody>
     </table></div>
-    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed.</p>
+    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. Launch sessions pause on uncaught exceptions by default, and breakpoints can be addressed by <b>statement content or function name</b> instead of line numbers — anchors that survive the agent's own edits.</p>
   </div>
 </section>
 
@@ -232,8 +233,10 @@
         <tr><td>Remote attach without an IDE</td><td class="y">✓ debugpy / rdbg / JDWP</td><td class="n">—</td></tr>
         <tr><td>Per-session process isolation</td><td class="y">✓</td><td class="n">shares the VS Code instance</td></tr>
         <tr><td>Java hot-swap</td><td class="y">✓</td><td class="n">—</td></tr>
-        <tr><td>In-IDE debugging UX beside the agent</td><td class="n">planned</td><td class="y">✓ native</td></tr>
-        <tr><td>C/C++, PHP</td><td class="n">—</td><td class="y">✓ via VS Code extensions</td></tr>
+        <tr><td>In-IDE debugging UX beside the agent</td><td class="y">✓ read-only IDE mirror — your IDE joins the agent's live session</td><td class="y">✓ native</td></tr>
+        <tr><td>Secret redaction on by default</td><td class="y">✓ + least-privilege variable mode</td><td class="n">—</td></tr>
+        <tr><td>C/C++</td><td class="y">✓ CodeLLDB, launch + attach-by-PID</td><td class="y">✓ via VS Code extensions</td></tr>
+        <tr><td>PHP</td><td class="n">—</td><td class="y">✓ via VS Code extensions</td></tr>
       </tbody>
     </table></div>
     <p class="note">If your agent runs in a terminal, a pipeline, or a cloud sandbox — or needs to reach a process on another machine — you want mcp-debugger.</p>
@@ -270,9 +273,10 @@
       <div>
         <h3>Supply chain</h3>
         <ul>
-          <li>Sigstore provenance on every npm package — verify with <code>npm audit signatures @debugmcp/mcp-debugger</code></li>
+          <li>Sigstore provenance on every npm package — verify with <code>gh attestation verify</code> or <code>npm audit signatures</code></li>
           <li>SPDX + CycloneDX <b>SBOMs</b> attached to each GitHub release</li>
-          <li>OIDC trusted publishing, SHA-pinned CI actions — <a href="https://github.com/debugmcp/mcp-debugger/blob/main/SUPPLY-CHAIN-SECURITY.md">full controls</a></li>
+          <li>OIDC trusted publishing, SHA-pinned CI actions, digest-pinned vendored debug engines — <a href="https://github.com/debugmcp/mcp-debugger/blob/main/SUPPLY-CHAIN-SECURITY.md">full controls</a> &amp; <a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/assurance-case.md">assurance case</a></li>
+          <li><b>Secret redaction on by default</b> — credential-shaped values are masked before they ever reach the agent; a least-privilege variable mode restricts reads to named variables</li>
           <li><a href="https://scorecard.dev/viewer/?uri=github.com/debugmcp/mcp-debugger">OpenSSF Scorecard</a> · <a href="https://www.bestpractices.dev/projects/13543">Best Practices</a></li>
         </ul>
       </div>
@@ -284,7 +288,7 @@
   <div class="wrap">
     <span>© 2025–2026 Sycamore LLC · MIT License</span>
     <a href="https://github.com/debugmcp">GitHub</a>
-    <a href="mailto:debug@sycamore.llc">debug@sycamore.llc</a>
+    <a href="mailto:admin@debugmcp.io">admin@debugmcp.io</a>
     <span>This page loads no third-party resources.</span>
   </div>
 </footer>
