@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mcp-debugger — the debugger for where IDEs can't go</title>
-<meta name="description" content="A headless MCP server that lets AI agents debug real programs with real debuggers — in CI, containers, Kubernetes, and cloud sandboxes. Python, JavaScript, Ruby, Rust, Go, Java, and .NET.">
+<meta name="description" content="A headless MCP server that lets AI agents debug real programs with real debuggers — in CI, containers, Kubernetes, and cloud sandboxes. Python, JavaScript, Ruby, Rust, Go, Java, .NET, and C/C++.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23e5484d'/%3E%3C/svg%3E">
 <style>
   :root{
@@ -147,6 +147,7 @@
         <code><span class="p">$</span> npx @debugmcp/mcp-debugger stdio</code>
         <button type="button" data-copy="npx @debugmcp/mcp-debugger stdio">copy</button>
       </div>
+      <p class="hero-links" style="margin-top:12px">Then <code>mcp-debugger doctor</code> prints a per-language table of what's installed, what's missing, and how to fix it.</p>
       <p class="hero-links">
         <a href="https://github.com/debugmcp/mcp-debugger#-quick-start">All install options</a>
         <a href="https://github.com/debugmcp/mcp-debugger#%EF%B8%8F-available-tools">Tool reference</a>
@@ -185,13 +186,13 @@
         <h3>Sick pods, diagnosed live</h3>
         <p>Attach to a misbehaving pod through a port-forward, inspect the state your logs never captured, detach. Compiled process with no debug agent? Send the debugger to the pod as an ephemeral sidecar and attach by PID.</p>
         <pre><b>$</b> kubectl debug pod/checkout --image=debugmcp/mcp-debugger …</pre>
-        <a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/jit-diagnostics/README.md">Just-in-time diagnostics tutorial →</a>
+        <a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/jit-diagnostics/README.md">Just-in-time diagnostics tutorial →</a><br><a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/kubernetes.md">Kubernetes recipe &amp; manifests →</a>
       </div>
       <div class="card">
         <h3>Cloud agents, real debuggers</h3>
         <p>Claude Code, Copilot, Cursor, and headless harnesses connect over stdio or HTTP. A debug session becomes structured tool calls an agent can reason about.</p>
         <pre><b>$</b> claude mcp add-json mcp-debugger …</pre>
-        <a href="https://github.com/debugmcp/mcp-debugger#mcp-integration-with-claude-code-cli">Client setup →</a>
+        <a href="https://github.com/debugmcp/mcp-debugger#for-claude-code-cli">Client setup →</a>
       </div>
     </div>
   </div>
@@ -206,16 +207,16 @@
       <thead><tr><th>Language</th><th>Engine</th><th>Launch</th><th>Attach</th><th>Remote attach</th><th>Notable</th></tr></thead>
       <tbody>
         <tr><td>Python</td><td class="eng">debugpy</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>logpoints, function breakpoints</td></tr>
-        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>VS Code's engine, function breakpoints via CDP</td></tr>
+        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>VS Code's engine, V8 inspector attach, function breakpoints via CDP</td></tr>
         <tr><td>Ruby</td><td class="eng">rdbg</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>attach into containers &amp; pods</td></tr>
         <tr><td>Rust</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>Cargo-aware launch, logpoints</td></tr>
         <tr><td>Go</td><td class="eng">Delve</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>native DAP, logpoints</td></tr>
         <tr><td>Java</td><td class="eng">JDI bridge</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>JDWP attach, class hot-swap</td></tr>
         <tr><td>.NET / C#</td><td class="eng">netcoredbg</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>PID attach, portable PDB handling</td></tr>
-        <tr><td>C / C++</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>attach by PID, k8s ephemeral sidecar, auto-compile, core dumps</td></tr>
+        <tr><td>C / C++</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>attach by PID, k8s ephemeral sidecar, auto-compile, core dumps</td></tr>
       </tbody>
     </table></div>
-    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. Launch sessions pause on uncaught exceptions by default, and breakpoints can be addressed by <b>statement content or function name</b> instead of line numbers — anchors that survive the agent's own edits.</p>
+    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. <b>Logpoints</b> — log a value and keep running, never pausing — work on Python, JavaScript, Go, Rust and C/C++. <b>Function breakpoints</b> work on every adapter except Ruby. Breakpoints can be addressed by <b>statement content</b> (<code>statement:</code>), by <b>symbol</b> (<code>function:</code>), or by line with an <code>expectedContent</code> assertion — anchors that survive the agent's own edits and re-resolve across a relaunch. Launch sessions pause on uncaught exceptions by default (Ruby excepted — rdbg has no uncaught-only filter). npm installs pull only your platform's CodeLLDB build, so Rust and C/C++ work out of the box on Windows, macOS and Linux.</p>
   </div>
 </section>
 
@@ -229,9 +230,13 @@
       <tbody>
         <tr><td>Runs headless (CI, containers, k8s, cloud)</td><td class="y">✓ standalone process</td><td class="n">requires running VS Code</td></tr>
         <tr><td>Transports</td><td>stdio + Streamable HTTP</td><td>HTTP (localhost)</td></tr>
-        <tr><td>Distribution</td><td>npx, npm, Docker</td><td>VS Code Marketplace</td></tr>
-        <tr><td>Remote attach without an IDE</td><td class="y">✓ debugpy / rdbg / JDWP</td><td class="n">—</td></tr>
+        <tr><td>Distribution</td><td>npx, npm, Docker, PyPI launcher</td><td>VS Code Marketplace</td></tr>
+        <tr><td>Remote attach without an IDE</td><td class="y">✓ debugpy / rdbg / JDWP / V8 inspector</td><td class="n">—</td></tr>
         <tr><td>Per-session process isolation</td><td class="y">✓</td><td class="n">shares the VS Code instance</td></tr>
+        <tr><td>Content/function-addressed breakpoints</td><td class="y">✓ <code>statement:</code> / <code>function:</code> — survive the agent's edits</td><td class="n">—</td></tr>
+        <tr><td>Debuggee output as a subscribable MCP resource</td><td class="y">✓</td><td class="n">—</td></tr>
+        <tr><td>Logpoints without pausing</td><td class="y">✓ prod-safe value watching</td><td class="y">✓ via VS Code</td></tr>
+        <tr><td>Kubernetes ephemeral debug sidecar</td><td class="y">✓ <code>kubectl debug</code> + attach by PID</td><td class="n">—</td></tr>
         <tr><td>Java hot-swap</td><td class="y">✓</td><td class="n">—</td></tr>
         <tr><td>In-IDE debugging UX beside the agent</td><td class="y">✓ read-only IDE mirror — your IDE joins the agent's live session</td><td class="y">✓ native</td></tr>
         <tr><td>Secret redaction on by default</td><td class="y">✓ + least-privilege variable mode</td><td class="n">—</td></tr>
@@ -248,9 +253,10 @@
     <p class="eyebrow">agent skill</p>
     <h2>Tools say what an agent can do. The skill teaches it to debug well.</h2>
     <p class="lede">mcp-debugger ships an agent skill: when to reach for the debugger, the session golden path, root-cause bisection discipline, and the per-language quirks we learned so your agent doesn't have to. The server also serves condensed guidance in-band via MCP instructions and a <code>debugging-workflow</code> prompt.</p>
+    <p class="lede">From a clone of the repo, copy it into your agent's skills directory &mdash; <code>~/.claude/skills/</code> for Claude Code, <code>~/.agents/skills/</code> or <code>~/.copilot/skills/</code> for other harnesses. Any other agent can read <code>SKILL.md</code> directly as a rules file. <a href="https://github.com/debugmcp/mcp-debugger/tree/main/skills/debugging">The skill &rarr;</a></p>
     <div class="cmd skill-cmd">
-      <code><span class="p">$</span> npx skills add debugmcp/mcp-debugger</code>
-      <button type="button" data-copy="npx skills add debugmcp/mcp-debugger">copy</button>
+      <code><span class="p">$</span> cp -r skills/debugging ~/.claude/skills/mcp-debugger</code>
+      <button type="button" data-copy="cp -r skills/debugging ~/.claude/skills/mcp-debugger">copy</button>
     </div>
   </div>
 </section>
@@ -275,6 +281,8 @@
         <ul>
           <li>Sigstore provenance on every npm package — verify with <code>gh attestation verify</code> or <code>npm audit signatures</code></li>
           <li>SPDX + CycloneDX <b>SBOMs</b> attached to each GitHub release</li>
+          <li><b>Build provenance on every distributed artifact</b> — npm tarballs, the Docker image, and the PyPI launcher, all built by one tag-triggered workflow</li>
+          <li>A weekly <b>canary</b> installs what you install — npx, global npm, Docker — on x64 and arm64 Linux, arm64 macOS and Windows, and drives a real breakpoint cycle</li>
           <li>OIDC trusted publishing, SHA-pinned CI actions, digest-pinned vendored debug engines — <a href="https://github.com/debugmcp/mcp-debugger/blob/main/SUPPLY-CHAIN-SECURITY.md">full controls</a> &amp; <a href="https://github.com/debugmcp/mcp-debugger/blob/main/docs/assurance-case.md">assurance case</a></li>
           <li><b>Secret redaction on by default</b> — credential-shaped values are masked before they ever reach the agent; a least-privilege variable mode restricts reads to named variables</li>
           <li><a href="https://scorecard.dev/viewer/?uri=github.com/debugmcp/mcp-debugger">OpenSSF Scorecard</a> · <a href="https://www.bestpractices.dev/projects/13543">Best Practices</a></li>
