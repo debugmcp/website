@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mcp-debugger — the debugger for where IDEs can't go</title>
-<meta name="description" content="A headless MCP server that lets AI agents debug real programs with real debuggers — in CI, containers, Kubernetes, and cloud sandboxes. Python, JavaScript, Ruby, Rust, Go, Java, .NET, and C/C++.">
+<meta name="description" content="A headless MCP server that lets AI agents debug real programs with real debuggers — in CI, containers, Kubernetes, and cloud sandboxes. Python, JavaScript, Ruby, Rust, Go, Java, .NET, C/C++, and COBOL.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23e5484d'/%3E%3C/svg%3E">
 <style>
   :root{
@@ -142,7 +142,7 @@
   <div class="wrap hero">
     <div>
       <h1>The debugger for where IDEs can't go<em>.</em></h1>
-      <p class="sub">mcp-debugger is a headless MCP server that lets AI agents drive <b>real debuggers</b> — breakpoints, stepping, live variables — in CI runners, containers, Kubernetes pods, and cloud sandboxes. <b>Eight languages, 28 tools.</b> No IDE anywhere in the loop.</p>
+      <p class="sub">mcp-debugger is a headless MCP server that lets AI agents drive <b>real debuggers</b> — breakpoints, stepping, live variables — in CI runners, containers, Kubernetes pods, and cloud sandboxes. <b>Nine languages, 28 tools.</b> No IDE anywhere in the loop.</p>
       <div class="cmd">
         <code><span class="p">$</span> npx @debugmcp/mcp-debugger stdio</code>
         <button type="button" data-copy="npx @debugmcp/mcp-debugger stdio">copy</button>
@@ -201,7 +201,7 @@
 <section id="languages">
   <div class="wrap">
     <p class="eyebrow">languages</p>
-    <h2>Eight languages, one contract</h2>
+    <h2>Nine languages, one contract</h2>
     <p class="lede">Every adapter drives the language's own production debugger through the Debug Adapter Protocol — the same engines your IDE would use, without the IDE.</p>
     <div class="tbl-scroll"><table>
       <thead><tr><th>Language</th><th>Engine</th><th>Launch</th><th>Attach</th><th>Remote attach</th><th>Notable</th></tr></thead>
@@ -214,9 +214,10 @@
         <tr><td>Java</td><td class="eng">JDI bridge</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>JDWP attach, class hot-swap</td></tr>
         <tr><td>.NET / C#</td><td class="eng">netcoredbg</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>PID attach, portable PDB handling</td></tr>
         <tr><td>C / C++</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>attach by PID, k8s ephemeral sidecar, auto-compile, core dumps</td></tr>
+        <tr><td>COBOL</td><td class="eng">GnuCOBOL + CodeLLDB</td><td class="y">✓</td><td class="y">✓</td><td class="n">—</td><td>COBOL-shaped variables, PERFORM-aware stepping, paragraph breakpoints, attach by PID</td></tr>
       </tbody>
     </table></div>
-    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. <b>Logpoints</b> — log a value and keep running, never pausing — work on Python, JavaScript, Go, Rust and C/C++. <b>Function breakpoints</b> work on every adapter except Ruby. Breakpoints can be addressed by <b>statement content</b> (<code>statement:</code>), by <b>symbol</b> (<code>function:</code>), or by line with an <code>expectedContent</code> assertion — anchors that survive the agent's own edits and re-resolve across a relaunch. Launch sessions pause on uncaught exceptions by default (Ruby excepted — rdbg has no uncaught-only filter). npm installs pull only your platform's CodeLLDB build, so Rust and C/C++ work out of the box on Windows, macOS and Linux.</p>
+    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. <b>Logpoints</b> — log a value and keep running, never pausing — work on Python, JavaScript, Go, Rust, C/C++ and COBOL. <b>Function breakpoints</b> work on every adapter except Ruby. Breakpoints can be addressed by <b>statement content</b> (<code>statement:</code>), by <b>symbol</b> (<code>function:</code>), or by line with an <code>expectedContent</code> assertion — anchors that survive the agent's own edits and re-resolve across a relaunch. Launch sessions pause on uncaught exceptions by default (Ruby excepted — rdbg has no uncaught-only filter). npm installs pull only your platform's CodeLLDB build, so Rust and C/C++ work out of the box on Windows, macOS and Linux.</p>
   </div>
 </section>
 
@@ -253,7 +254,7 @@
     <p class="eyebrow">agent skill</p>
     <h2>Tools say what an agent can do. The skill teaches it to debug well.</h2>
     <p class="lede">mcp-debugger ships an agent skill: when to reach for the debugger, the session golden path, root-cause bisection discipline, and the per-language quirks we learned so your agent doesn't have to. The server also serves condensed guidance in-band via MCP instructions and a <code>debugging-workflow</code> prompt.</p>
-    <p class="lede">From a clone of the repo, copy it into your agent's skills directory &mdash; <code>~/.claude/skills/</code> for Claude Code, <code>~/.agents/skills/</code> or <code>~/.copilot/skills/</code> for other harnesses. Any other agent can read <code>SKILL.md</code> directly as a rules file. <a href="https://github.com/debugmcp/mcp-debugger/tree/main/skills/debugging">The skill &rarr;</a></p>
+    <p class="lede">From a clone of the repo, copy it into your agent's skills directory &mdash; <code>~/.claude/skills/</code> for Claude Code, <code>~/.agents/skills/</code> or <code>~/.copilot/skills/</code> for other harnesses. Any other agent can read <code>SKILL.md</code> directly as a rules file. The skill also ships inside the npm package: <code>pi install npm:@debugmcp/mcp-debugger</code> registers the server and the skill in one step, and any harness that reads a skills directory can point at <code>node_modules/@debugmcp/mcp-debugger/skills/debugging</code>. <a href="https://github.com/debugmcp/mcp-debugger/tree/main/skills/debugging">The skill &rarr;</a></p>
     <div class="cmd skill-cmd">
       <code><span class="p">$</span> cp -r skills/debugging ~/.claude/skills/mcp-debugger</code>
       <button type="button" data-copy="cp -r skills/debugging ~/.claude/skills/mcp-debugger">copy</button>
