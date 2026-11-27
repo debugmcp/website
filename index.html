@@ -190,7 +190,7 @@
       </div>
       <div class="card">
         <h3>Cloud agents, real debuggers</h3>
-        <p>Claude Code, Copilot, Cursor, and headless harnesses connect over stdio or HTTP. A debug session becomes structured tool calls an agent can reason about.</p>
+        <p>Claude Code, Copilot, Cursor, and headless harnesses connect over stdio or HTTP, on MCP 2026-07-28 or the 2025 revisions. A debug session becomes structured tool calls an agent can reason about.</p>
         <pre><b>$</b> claude mcp add-json mcp-debugger …</pre>
         <a href="https://github.com/debugmcp/mcp-debugger#for-claude-code-cli">Client setup →</a>
       </div>
@@ -206,8 +206,8 @@
     <div class="tbl-scroll"><table>
       <thead><tr><th>Language</th><th>Engine</th><th>Launch</th><th>Attach</th><th>Remote attach</th><th>Notable</th></tr></thead>
       <tbody>
-        <tr><td>Python</td><td class="eng">debugpy</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>logpoints, function breakpoints</td></tr>
-        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>VS Code's engine, V8 inspector attach, function breakpoints via CDP</td></tr>
+        <tr><td>Python</td><td class="eng">debugpy</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>logpoints, function breakpoints, child processes followed as child sessions</td></tr>
+        <tr><td>JavaScript / TypeScript</td><td class="eng">js-debug</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>VS Code's engine, V8 inspector attach, function breakpoints via CDP, child Node processes followed as child sessions</td></tr>
         <tr><td>Ruby</td><td class="eng">rdbg</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>attach into containers &amp; pods</td></tr>
         <tr><td>Rust</td><td class="eng">CodeLLDB</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>Cargo-aware launch, logpoints</td></tr>
         <tr><td>Go</td><td class="eng">Delve</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td>native DAP, logpoints</td></tr>
@@ -218,7 +218,7 @@
         <tr><td>Dart / Flutter</td><td class="eng">SDK debug adapters</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td>Dart programs and tests, Flutter apps and tests on desktop, web, Android and the iOS simulator; hot reload and hot restart; attach by VM-service URI or Android device</td></tr>
       </tbody>
     </table></div>
-    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. <b>Logpoints</b> — log a value and keep running, never pausing — work on Python, JavaScript, Go, Rust, C/C++, COBOL and Dart/Flutter. <b>Function breakpoints</b> work on every adapter except Ruby and Dart/Flutter. Breakpoints can be addressed by <b>statement content</b> (<code>statement:</code>), by <b>symbol</b> (<code>function:</code>), or by line with an <code>expectedContent</code> assertion — anchors that survive the agent's own edits and re-resolve across a relaunch. Launch sessions pause on uncaught exceptions by default (Ruby excepted — rdbg has no uncaught-only filter). npm installs pull only your platform's CodeLLDB build, so Rust and C/C++ work out of the box on Windows, macOS and Linux.</p>
+    <p class="note">Plus a mock adapter for testing agent integrations without any toolchain installed. <b>Logpoints</b> — log a value and keep running, never pausing — work on Python, JavaScript, Go, Rust, C/C++, COBOL and Dart/Flutter. <b>Function breakpoints</b> work on every adapter except Ruby and Dart/Flutter. Breakpoints can be addressed by <b>statement content</b> (<code>statement:</code>), by <b>symbol</b> (<code>function:</code>), or by line with an <code>expectedContent</code> assertion — anchors that survive the agent's own edits and re-resolve across a relaunch. Launch sessions pause on uncaught exceptions by default (Ruby excepted — rdbg has no uncaught-only filter). A Python or JavaScript launch follows the processes it starts: each becomes a child session, and waiting on the parent returns whichever one stopped. npm installs pull only your platform's CodeLLDB build, so Rust and C/C++ work out of the box on Windows, macOS and Linux.</p>
   </div>
 </section>
 
